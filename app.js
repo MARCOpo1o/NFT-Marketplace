@@ -83,11 +83,13 @@ app.get("/sandbox",
       }
 );
 
-app.get("/boots",
-      (req,res,next) => {
-           res.render("bootstrapdemo")
-      }
-);
+// app.get("/boots", 
+//   (req, res, next) => {
+
+//         res.render("bootstrapdemo");
+//       }
+// );
+
 
 
 
