@@ -15,6 +15,21 @@ const session = require("express-session"); // to handle sessions using cookies
 const bodyParser = require("body-parser"); // to handle HTML form input
 const debug = require("debug")("personalapp:server"); 
 const layouts = require("express-ejs-layouts");
+const auth = require("./routes/auth");
+
+
+const mongoose = require( 'mongoose' );
+const mongodb_URI = 'mongodb+srv://tqin:Wach047302@cluster0.looip.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
+//const mongodb_URI = 'mongodb+srv://cs_sj:BrandeisSpr22@cluster0.kgugl.mongodb.net/myFirstDatabase?retryWrites=true&w=majority'
+
+mongoose.connect( mongodb_URI, { useNewUrlParser: true, useUnifiedTopology: true } );
+// fix deprecation warnings
+mongoose.set('useFindAndModify', false); 
+mongoose.set('useCreateIndex', true);
+
+const db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {console.log("we are connected!!!")});
 
 
 
@@ -56,6 +71,8 @@ app.use(
   })
 );
 
+app.use(auth);
+
 // *********************************************************** //
 //  Defining the routes the Express server will respond to
 // *********************************************************** //
@@ -77,11 +94,28 @@ app.get("/demopage", (req, res, next) => {
   res.render("demo");
 });
 
-app.get("/sandbox", 
+app.get("/create", 
   (req, res, next) => {
-        res.render("sandbox");
+        res.render("create");
       }
 );
+
+app.get("/login", 
+  (req, res, next) => {
+      res.render("login");
+
+  });
+  app.get("/signup", 
+  (req, res, next) => {
+      res.render("signup");
+
+  });
+
+  app.get("/login1", 
+  (req, res, next) => {
+      res.render("login1");
+
+  });
 
 // app.get("/boots", 
 //   (req, res, next) => {
