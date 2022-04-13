@@ -33,8 +33,6 @@ db.once('open', function() {console.log("we are connected!!!")});
 
 
 
-
-
 // *********************************************************** //
 // Initializing the Express server 
 // This code is run once when the app is started and it creates
@@ -61,6 +59,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // Here we specify that static files will be in the public folder
 app.use(express.static(path.join(__dirname, "public")));
+
 
 // Here we enable session handling using cookies
 app.use(
@@ -116,6 +115,44 @@ app.get("/login",
       res.render("login1");
 
   });
+
+  app.get("/secret", 
+  (req, res, next) => {
+      res.render("secret");
+
+  });
+
+
+// for images//
+// app.use("/images",express.static(path.join(__dirname,"/images")))
+
+// Here is for storage within users' accounts //
+const multer = require("multer");
+
+const storage = multer.diskStorage({
+    destination:(req,file, cb)=>{
+        cb(null,"public/images")
+    }, filename: (req,file,cb)=>{
+        cb(null, file.originalname)
+    }
+})
+
+const upload = multer({storage: storage})
+
+app.post("/api/upload", upload.single("file"),(req,res)=>{
+    res.status(200).json("File has been uploaded");
+
+  if (req.session.username) {
+    res.locals.loggedIn = true
+    res.locals.username = req.session.username
+    res.locals.user = req.session.user
+  } else {
+    res.locals.loggedIn = false
+    res.locals.username = null
+    res.locals.user = null
+  }
+  res.redirect('/')
+})
 
 // app.get("/boots", 
 //   (req, res, next) => {
@@ -190,3 +227,4 @@ server.on("error", onError);
 server.on("listening", onListening);
 
 module.exports = app;
+
