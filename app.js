@@ -33,6 +33,9 @@ db.once('open', function() {console.log("we are connected!!!")});
 
 
 
+
+
+
 // *********************************************************** //
 // Initializing the Express server 
 // This code is run once when the app is started and it creates
@@ -123,48 +126,101 @@ app.get("/login",
   });
 
 
-// for images//
-// app.use("/images",express.static(path.join(__dirname,"/images")))
+// // for images//
+// // app.use("/images",express.static(path.join(__dirname,"/images")))
 
-// Here is for storage within users' accounts //
+// // Here is for storage within users' accounts //
 const multer = require("multer");
 
+// Set The Storage Engine
 const storage = multer.diskStorage({
-    destination:(req,file, cb)=>{
-        cb(null,"public/images")
-    }, filename: (req,file,cb)=>{
-        cb(null, file.originalname)
-    }
-})
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, '/tmp/my-uploads')
-  },
-  filename: function (req, file, cb) {
-    cb(null, file.fieldname + '-' + uniqueSuffix)
+  destination: './public/Users/',
+  filename: function(req, file, cb){
+    cb(null,file.fieldname + '-' + Date.now() + path.extname(file.originalname));
   }
-})
+});
+//  const storage = multer.diskStorage({
+//     destination:(req,file, cb)=>{
+//         cb(null,"public/images")
+//     }, filename: (req,file,cb)=>{
+//         cb(null, file.originalname)
+//     }
+// })
 
-const upload = multer({ storage: storage })
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, '/tmp/my-uploads')
+//   },
+//   filename: function (req, file, cb) {
+//     cb(null, file.fieldname + '-' + uniqueSuffix)
+//   }
+// })
 
+//const upload = multer({ storage: storage })
 
-const upload = multer({storage: storage})
+// Init Upload
+const upload = multer({
+  storage: storage,
+  limits:{fileSize: 1000000},
+  fileFilter: function(req, file, cb){
+    checkFileType(file, cb);
+  }
+}).single('myImage');
 
-app.post("/api/upload", upload.single("file"),(req,res)=>{
-    res.status(200).json("File has been uploaded");
+// Check File Type
+function checkFileType(file, cb){
+  // Allowed ext
+  const filetypes = /jpeg|jpg|png|gif/;
+  // Check ext
+  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+  // Check mime
+  const mimetype = filetypes.test(file.mimetype);
 
-  if (req.session.username) {
-    res.locals.loggedIn = true
-    res.locals.username = req.session.username
-    res.locals.user = req.session.user
+  if(mimetype && extname){
+    return cb(null,true);
   } else {
-    res.locals.loggedIn = false
-    res.locals.username = null
-    res.locals.user = null
+    cb('Error: Images Only!');
   }
-  res.redirect('/')
-})
+}
+
+
+
+
+// app.post("/api/upload", upload.single("file"),(req,res)=>{
+//     res.status(200).json("File has been uploaded");
+
+//   if (req.session.username) {
+//     res.locals.loggedIn = true
+//     res.locals.username = req.session.username
+//     res.locals.user = req.session.user
+//   } else {
+//     res.locals.loggedIn = false
+//     res.locals.username = null
+//     res.locals.user = null
+//   }
+//   res.redirect('/')
+// })
+
+app.post('/upload', (req, res) => {
+  upload(req, res, (err) => {
+    if(err){
+      res.render('index', {
+        msg: err
+      });
+    } else {
+      if(req.file == undefined){
+        res.render('index', {
+          msg: 'Error: No File Selected!'
+        });
+      } else {
+        res.render('secret', {
+          msg: 'File Uploaded!',
+          file: `Users/${req.file.filename}`
+        });
+      }
+    }
+  });
+});
 
 // app.get("/boots", 
 //   (req, res, next) => {
@@ -173,6 +229,27 @@ app.post("/api/upload", upload.single("file"),(req,res)=>{
 //       }
 // );
 
+
+
+//*************************** */
+//displaying all the images in the drive
+//var express = require("express"),
+//     app = express(),
+//     imageDir = __dirname + "/User/<%= user._id %>",
+//     imageSuffix = "-image.png",
+//     fs = require("fs");
+
+// app.get("/images/:id", function (request, response) {
+//     var path = imageDir + request.params.id + imageSuffix;
+
+//     console.log("fetching image: ", path);
+//     response.sendFile(path);
+// });
+
+
+// app.listen(5500);
+
+//************************************* */
 
 
 
@@ -192,6 +269,36 @@ app.use(function(err, req, res, next) {
   res.render("error");
 });
 
+
+//functions to see the uploaded images
+app.use('/static', express.static(path.join(__dirname,'uploads')))
+
+app.get('/getimages',(req, res) => {
+  let images = getImagesFromDir(path.join(__dirname, 'uploads'))
+
+  res.render('index', {title:'Node.js - Auto Generated Gallery from a Directory', images:images})
+})
+function getImagesFromDir(dirPath){
+
+  let allImages = []
+
+  let files = fs.readdirSync(dirPath)
+
+  for (file in files){
+    let fileLocation = path.join(dirPath,file)
+    var stat = fs.statSync(fileLocation)
+
+    if (stat && stat.isDirectory()){
+      getImagesFromDir(fileLocation)
+
+    }
+    else if(stat && stat.isFile() && ['.jpg','.png'].indexOf(path.extname(fileLocation)) !== -1){
+      allImages.push('static/'+file)
+    }
+  }
+  return allImages
+
+}
 
 // *********************************************************** //
 //  Starting up the server!
